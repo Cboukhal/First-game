@@ -1,0 +1,271 @@
+*
+{
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body
+{
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: linear-gradient(135deg, #1e1e2e 0%, #2d1b3d 100%);
+    color: #fff;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+header
+{
+    background: rgba(0, 0, 0, 0.5);
+    padding: 1rem 2rem;
+    border-bottom: 2px solid #8b5cf6;
+    backdrop-filter: blur(10px);
+}
+
+header h1
+{
+    font-size: 1.5rem;
+    color: #a78bfa;
+    text-shadow: 0 0 10px rgba(167, 139, 250, 0.5);
+}
+
+main
+{
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+}
+
+.environnement
+{
+    width: 100%;
+    max-width: 1200px;
+}
+
+.niveau
+{
+    text-align: center;
+    font-size: 2rem;
+    margin-bottom: 1rem;
+    color: #fbbf24;
+    text-shadow: 0 0 20px rgba(251, 191, 36, 0.5);
+    animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse
+{
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.7; }
+}
+
+.jeu
+{
+    background: rgba(0, 0, 0, 0.7);
+    border: 2px solid #8b5cf6;
+    border-radius: 20px;
+    padding: 3rem 2rem;
+    box-shadow: 0 10px 50px rgba(139, 92, 246, 0.3);
+    backdrop-filter: blur(10px);
+}
+
+.jeu h3
+{
+    text-align: center;
+    font-size: 1.8rem;
+    margin-bottom: 3rem;
+    color: #c4b5fd;
+}
+
+.classes-container
+{
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 2rem;
+    margin-top: 2rem;
+}
+
+.classe-card
+{
+    background: linear-gradient(145deg, #2a2a3e, #1f1f2e);
+    border: 2px solid transparent;
+    border-radius: 15px;
+    padding: 2rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.classe-card::before
+{
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(145deg, transparent, rgba(139, 92, 246, 0.1));
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.classe-card:hover
+{
+    transform: translateY(-10px);
+    border-color: #8b5cf6;
+    box-shadow: 0 15px 40px rgba(139, 92, 246, 0.4);
+}
+
+.classe-card:hover::before
+{
+    opacity: 1;
+}
+
+.classe-icon
+{
+    font-size: 4rem;
+    text-align: center;
+    margin-bottom: 1rem;
+    filter: drop-shadow(0 0 10px currentColor);
+}
+
+.classe-name
+{
+    font-size: 1.5rem;
+    text-align: center;
+    margin-bottom: 1rem;
+    color: #a78bfa;
+    font-weight: bold;
+}
+
+.classe-description
+{
+    text-align: center;
+    font-size: 0.9rem;
+    color: #cbd5e1;
+    line-height: 1.5;
+    margin-bottom: 1rem;
+}
+
+.classe-stats
+{
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin-top: 1.5rem;
+}
+
+.stat
+{
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.85rem;
+}
+
+.stat-name
+{
+    color: #94a3b8;
+}
+
+.stat-bar
+{
+    flex: 1;
+    height: 8px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+    margin: 0 0.5rem;
+    overflow: hidden;
+}
+
+.stat-fill
+{
+    height: 100%;
+    background: linear-gradient(90deg, #8b5cf6, #a78bfa);
+    border-radius: 10px;
+    transition: width 0.3s ease;
+}
+
+.btn-container
+{
+    text-align: center;
+    margin-top: 3rem;
+}
+
+.btn-start
+{
+    background: linear-gradient(135deg, #8b5cf6, #6d28d9);
+    color: white;
+    border: none;
+    padding: 1rem 3rem;
+    font-size: 1.2rem;
+    border-radius: 50px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 5px 20px rgba(139, 92, 246, 0.4);
+    font-weight: bold;
+    display: none;
+}
+
+.btn-start:hover
+{
+    transform: scale(1.05);
+    box-shadow: 0 8px 30px rgba(139, 92, 246, 0.6);
+}
+
+.btn-start.active
+{
+    display: inline-block;
+    animation: slideUp 0.5s ease;
+}
+
+@keyframes slideUp
+{
+    from
+    {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to
+    {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.selected
+{
+    border-color: #fbbf24 !important;
+    box-shadow: 0 15px 40px rgba(251, 191, 36, 0.5) !important;
+}
+
+footer
+{
+    background: rgba(0, 0, 0, 0.5);
+    padding: 1rem;
+    text-align: center;
+    border-top: 2px solid #8b5cf6;
+    backdrop-filter: blur(10px);
+    color: #94a3b8;
+}
+
+@media (max-width: 768px)
+{
+    .classes-container
+    {
+        grid-template-columns: 1fr;
+    }
+
+    .niveau
+    {
+        font-size: 1.5rem;
+    }
+
+    .jeu h3
+    {
+        font-size: 1.3rem;
+    }
+}

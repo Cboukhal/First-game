@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>First Game</title>
+    <link rel="stylesheet" href="./style.css">
+</head>
+<body>
+    <header>
+        <h1>Aventure RPG</h1>
+    </header>
+
+    <main>
+        <section class="environnement">
+            <div>
+                <h2 class="niveau">Niveau 0</h2>
+                <span class="jeu">
+                    <h3>Choisissez votre classe</h3>
+                    
+                    <div class="classes-container">
+                        <div class="classe-card" data-classe="guerrier">
+                            <div class="classe-icon">⚔️</div>
+                            <div class="classe-name">Guerrier</div>
+                            <div class="classe-description">
+                                Maître du combat au corps à corps, le guerrier excelle dans la force brute et l'endurance.
+                            </div>
+                            <div class="classe-stats">
+                                <div class="stat">
+                                    <span class="stat-name">Force</span>
+                                    <div class="stat-bar"><div class="stat-fill" style="width: 90%"></div></div>
+                                </div>
+                                <div class="stat">
+                                    <span class="stat-name">Défense</span>
+                                    <div class="stat-bar"><div class="stat-fill" style="width: 85%"></div></div>
+                                </div>
+                                <div class="stat">
+                                    <span class="stat-name">Magie</span>
+                                    <div class="stat-bar"><div class="stat-fill" style="width: 30%"></div></div>
+                                </div>                                
+                            </div>
+                        </div>
+
+                        <div class="classe-card" data-classe="mage">
+                            <div class="classe-icon">🪄</div>
+                            <div class="classe-name">Mage</div>
+                            <div class="classe-description">
+                                Expert en magie élémentaire, le mage contrôle les forces mystiques pour anéantir ses ennemis.
+                            </div>
+                            <div class="classe-stats">
+                                <div class="stat">
+                                    <span class="stat-name">Force</span>
+                                    <div class="stat-bar"><div class="stat-fill" style="width: 30%"></div></div>
+                                </div>
+                                <div class="stat">
+                                    <span class="stat-name">Défense</span>
+                                    <div class="stat-bar"><div class="stat-fill" style="width: 40%"></div></div>
+                                </div>
+                                <div class="stat">
+                                    <span class="stat-name">Magie</span>
+                                    <div class="stat-bar"><div class="stat-fill" style="width: 95%"></div></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="classe-card" data-classe="voleur">
+                            <div class="classe-icon">🗡️</div>
+                            <div class="classe-name">Voleur</div>
+                            <div class="classe-description">
+                                Tireur d'élite rapide et précis, l'archer frappe à distance avec une précision mortelle.
+                            </div>
+                            <div class="classe-stats">
+                                <div class="stat">
+                                    <span class="stat-name">Force</span>
+                                    <div class="stat-bar"><div class="stat-fill" style="width: 60%"></div></div>
+                                </div>
+                                <div class="stat">
+                                    <span class="stat-name">Défense</span>
+                                    <div class="stat-bar"><div class="stat-fill" style="width: 50%"></div></div>
+                                </div>
+                                <div class="stat">
+                                    <span class="stat-name">Magie</span>
+                                    <div class="stat-bar"><div class="stat-fill" style="width: 45%"></div></div>
+                                </div>
+                            </div>
+                    </div>
+
+                    <div class="btn-container">
+                        <button class="btn-start" id="btnStart">Commencer l'aventure</button>
+                    </div>
+                </span>
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <p>© 2024 RPG Adventure - Bonne chance, aventurier !</p>
+    </footer>
+
+    <script src="script.js"></script>
+</body>
+</html>
