@@ -9,7 +9,9 @@ let gameState = {
         attaque: 10,
         defense: 10,
         magie: 5,
-        degats: 5
+        degats: 5,
+        mana: 0,
+        manaMax: 0
     },
     mob: {
         pv: 50,
@@ -20,7 +22,8 @@ let gameState = {
     },
     portee: null,
     attaqueActuelle: 0,
-    defenseActuelle: 0
+    defenseActuelle: 0,
+    skillsChoisis: [] // Nouvelle propriété pour les skills
 };
 
 // ===== FONCTIONS UTILITAIRES =====
@@ -104,7 +107,6 @@ function updateHP() {
         playerHPBar.style.width = playerPercent + '%';
         playerHPText.textContent = `${gameState.pnj.pv} / ${gameState.pnj.pvMax} PV`;
         
-        // Changement de couleur selon les PV
         if (playerPercent > 50) {
             playerHPBar.style.background = 'linear-gradient(90deg, #22c55e, #16a34a)';
         } else if (playerPercent > 25) {
@@ -113,11 +115,32 @@ function updateHP() {
             playerHPBar.style.background = 'linear-gradient(90deg, #ef4444, #dc2626)';
         }
     }
-    
+    updateMana()
     if (enemyHPBar && enemyHPText) {
         const enemyPercent = (gameState.mob.pv / gameState.mob.pvMax) * 100;
         enemyHPBar.style.width = enemyPercent + '%';
         enemyHPText.textContent = `${gameState.mob.pv} / ${gameState.mob.pvMax} PV`;
+    }
+}
+
+// ===== MISE À JOUR DES BARRES DE MANA =====
+function updateMana() {
+    const playerManaBar = document.getElementById('player-mana-bar');
+    const playerManaText = document.getElementById('player-mana-text');
+    
+    if (playerManaBar && playerManaText) {
+        const manaPercent = (gameState.pnj.mana / gameState.pnj.manaMax) * 100;
+        playerManaBar.style.width = manaPercent + '%';
+        playerManaText.textContent = `${gameState.pnj.mana} / ${gameState.pnj.manaMax} Mana`;
+        
+        // Changement de couleur selon la mana
+        if (manaPercent > 50) {
+            playerManaBar.style.background = 'linear-gradient(90deg, #3b82f6, #2563eb)';
+        } else if (manaPercent > 25) {
+            playerManaBar.style.background = 'linear-gradient(90deg, #6366f1, #4f46e5)';
+        } else {
+            playerManaBar.style.background = 'linear-gradient(90deg, #8b5cf6, #7c3aed)';
+        }
     }
 }
 
@@ -168,7 +191,36 @@ function getClassStats(className) {
                 magie: 3,
                 degats: 8
             },
-            skills: ['Coup puissant', 'Bouclier', 'Sang froid']
+            skills: [
+                { 
+                    nom: 'Coup puissant', 
+                    icon: '💥',
+                    description : 'Dégâts +5 pour ce tour',
+                    effet: (gameState) => {
+                        gameState.pnj.degats += 5;
+                        return 'Dégâts +5 pour ce tour';
+                    }
+                },
+                { 
+                    nom: 'Bouclier', 
+                    icon: '🛡️',
+                    description : 'Défense +5 pour ce tour',
+                    effet: (gameState) => {
+                        gameState.defenseActuelle += 5;
+                        return 'Défense +5 pour ce tour';
+                    }
+                },
+                { 
+                    nom: 'Renforcement', 
+                    icon: '💪',
+                    manaCost: 10,
+                    description : 'Attaque +3 pour ce tour = 10 mana',
+                    effet: (gameState) => {
+                        gameState.attaqueActuelle += 3;
+                        return 'Attaque +3 pour ce tour';
+                    }
+                }
+            ]
         },
         mage: {
             name: 'Mage',
@@ -180,7 +232,38 @@ function getClassStats(className) {
                 magie: 15,
                 degats: 4
             },
-            skills: ['Flamme', 'Coup rapide', 'Protection']
+            skills: [
+                {
+                nom: 'Flamme',
+                icon: '🔥',
+                description: "à voir",
+                effet: (gameState) => {
+                    const degatsBonus = gameState.pnj.magie;
+                    gameState.pnj.degats += degatsBonus;
+                    return `Dégâts magiques +${degatsBonus}`;
+                }
+                },
+                { 
+                    nom: 'Coup rapide', 
+                    icon: '⚡',
+                    description: "à voir",
+                    effet: (gameState) => {
+                        gameState.attaqueActuelle += 4;
+                        return 'Attaque +4 pour ce tour';
+                    }
+                },
+                { 
+                    nom: 'Protection', 
+                    icon: '✨',
+                    description: "à voir",
+                    effet: (gameState) => {
+                        const soin = Math.floor(gameState.pnj.magie / 2);
+                        gameState.pnj.pv = Math.min(gameState.pnj.pv + soin, gameState.pnj.pvMax);
+                        updateHP();
+                        return `Récupération de ${soin} PV`;
+                    }
+                }
+            ]
         },
         voleur: {
             name: 'Voleur',
@@ -192,7 +275,36 @@ function getClassStats(className) {
                 magie: 5,
                 degats: 6
             },
-            skills: ['Frappe mortelle', 'Frappe multiple', 'Esquive']
+            skills: [
+                { 
+                    nom: 'Frappe mortelle', 
+                    icon: '🎯',
+                    description: 'Dégâts +7, Défense -2',
+                    effet: (gameState) => {
+                        gameState.pnj.degats += 7;
+                        gameState.defenseActuelle -= 2;
+                        return 'Dégâts +7, Défense -2';
+                    }
+                },
+                { 
+                    nom: 'Poison', 
+                    icon: '☠️',
+                    description: 'Défense ennemie -3',
+                    effet: (gameState) => {
+                        gameState.mob.defense -= 3;
+                        return 'Défense ennemie -3';
+                    }
+                },
+                { 
+                    nom: 'Esquive', 
+                    icon: '💨',
+                    description: 'Défense +6 pour ce tour',
+                    effet: (gameState) => {
+                        gameState.defenseActuelle += 6;
+                        return 'Défense +6 pour ce tour';
+                    }
+                }
+            ]
         }
     };
     
@@ -209,15 +321,15 @@ function startGame() {
         gameState.pnj = {
             ...gameState.pnj,
             ...classStats.stats,
-            pvMax: classStats.stats.pv
+            pvMax: classStats.stats.pv,
+            mana: classStats.stats.magie * 10,      // AJOUTER (10 mana par point de magie)
+            manaMax: classStats.stats.magie * 10  
         };
         
         localStorage.setItem('playerClass', selectedClass);
         
-        // Cache l'écran de sélection
         document.querySelector('.jeu').style.display = 'none';
         
-        // Crée la zone de jeu avec barres de vie
         const gameArea = document.createElement('div');
         gameArea.id = 'game-area';
         gameArea.innerHTML = `
@@ -230,6 +342,12 @@ function startGame() {
                         <div class="hp-bar" id="player-hp-bar" style="width: 100%;"></div>
                     </div>
                     <p id="player-hp-text" class="hp-text">${gameState.pnj.pv} / ${gameState.pnj.pvMax} PV</p>
+                    
+                    <!-- AJOUTER LA BARRE DE MANA -->
+                    <div class="hp-bar-container" style="margin-top: 0.5rem;">
+                        <div class="mana-bar" id="player-mana-bar" style="width: 100%;"></div>
+                    </div>
+                    <p id="player-mana-text" class="hp-text" style="color: #3b82f6;">${gameState.pnj.mana} / ${gameState.pnj.manaMax} Mana</p>
                 </div>
                 <div class="hp-container">
                     <h4 style="color: #ef4444; margin-bottom: 0.5rem;">👹 Ennemi</h4>
@@ -245,185 +363,21 @@ function startGame() {
             <div id="actions-container">
                 <h4 style="text-align: center; margin-bottom: 1rem;">⚔️ Choisissez votre position</h4>
                 <div class="actions-grid">
-                    <button class="action-btn" onclick="choisirEtAttaquer('longue')">
+                    <button class="action-btn" onclick="choisirPortee('longue')">
                         🏹 Longue portée<br>
                         <small>Attaque -25% | Défense +25%</small>
                     </button>
-                    <button class="action-btn" onclick="choisirEtAttaquer('moyenne')">
+                    <button class="action-btn" onclick="choisirPortee('moyenne')">
                         ⚔️ Portée moyenne<br>
                         <small>Stats normales</small>
                     </button>
-                    <button class="action-btn" onclick="choisirEtAttaquer('courte')">
+                    <button class="action-btn" onclick="choisirPortee('courte')">
                         🗡️ Courte portée<br>
                         <small>Attaque +25% | Défense -25%</small>
                     </button>
                 </div>
             </div>
         `;
-        
-        // Ajoute les styles CSS
-        const style = document.createElement('style');
-        style.textContent = `
-            #game-area {
-                animation: fadeIn 0.5s ease;
-            }
-            
-            @keyframes fadeIn {
-                from { opacity: 0; transform: translateY(20px); }
-                to { opacity: 1; transform: translateY(0); }
-            }
-            
-            .hp-container {
-                background: rgba(0, 0, 0, 0.3);
-                padding: 1rem;
-                border-radius: 10px;
-                border: 2px solid rgba(139, 92, 246, 0.3);
-            }
-            
-            .hp-bar-container {
-                background: rgba(0, 0, 0, 0.5);
-                height: 30px;
-                border-radius: 15px;
-                overflow: hidden;
-                border: 2px solid rgba(255, 255, 255, 0.1);
-                box-shadow: inset 0 2px 10px rgba(0, 0, 0, 0.5);
-            }
-            
-            .hp-bar {
-                height: 100%;
-                background: linear-gradient(90deg, #22c55e, #16a34a);
-                transition: width 0.5s ease, background 0.3s ease;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                font-weight: bold;
-                box-shadow: 0 0 20px rgba(34, 197, 94, 0.5);
-                position: relative;
-            }
-            
-            .hp-bar::after {
-                content: '';
-                position: absolute;
-                top: 0;
-                left: 0;
-                right: 0;
-                height: 50%;
-                background: linear-gradient(180deg, rgba(255,255,255,0.3), transparent);
-                border-radius: 15px 15px 0 0;
-            }
-            
-            .enemy-hp {
-                background: linear-gradient(90deg, #ef4444, #dc2626);
-                box-shadow: 0 0 20px rgba(239, 68, 68, 0.5);
-            }
-            
-            .hp-text {
-                text-align: center;
-                margin-top: 0.5rem;
-                font-weight: bold;
-                font-size: 1.1rem;
-                text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
-            }
-            
-            #combat-log {
-                background: rgba(0, 0, 0, 0.5);
-                padding: 1rem;
-                border-radius: 10px;
-                max-height: 200px;
-                overflow-y: auto;
-                font-family: monospace;
-                margin: 2rem 0;
-                border: 2px solid rgba(139, 92, 246, 0.3);
-            }
-            
-            .actions-grid {
-                display: grid;
-                grid-template-columns: repeat(3, 1fr);
-                gap: 1rem;
-            }
-            
-            .action-btn {
-                background: linear-gradient(135deg, #8b5cf6, #6d28d9);
-                color: white;
-                border: 2px solid transparent;
-                padding: 1.5rem 1rem;
-                border-radius: 10px;
-                cursor: pointer;
-                font-size: 1rem;
-                transition: all 0.3s ease;
-                font-weight: bold;
-            }
-            
-            .action-btn:hover:not(:disabled) {
-                border-color: #fbbf24;
-                transform: translateY(-5px);
-                box-shadow: 0 10px 30px rgba(139, 92, 246, 0.5);
-            }
-            
-            .action-btn:disabled {
-                opacity: 0.5;
-                cursor: not-allowed;
-            }
-            
-            .action-btn small {
-                display: block;
-                margin-top: 0.5rem;
-                font-size: 0.8rem;
-                opacity: 0.9;
-                font-weight: normal;
-            }
-            
-            #dice-overlay {
-                position: fixed;
-                top: 0;
-                left: 0;
-                width: 100%;
-                height: 100%;
-                background: rgba(0, 0, 0, 0.8);
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                z-index: 9999;
-                animation: fadeIn 0.3s ease;
-            }
-            
-            .dice-container {
-                text-align: center;
-            }
-            
-            .dice {
-                font-size: 8rem;
-                animation: bounce 0.5s ease infinite;
-                transition: all 0.1s ease;
-                filter: drop-shadow(0 0 30px rgba(251, 191, 36, 0.8));
-            }
-            
-            .dice-final {
-                animation: none !important;
-                color: #fbbf24;
-                filter: drop-shadow(0 0 50px rgba(251, 191, 36, 1));
-            }
-            
-            @keyframes bounce {
-                0%, 100% { transform: translateY(0); }
-                50% { transform: translateY(-20px); }
-            }
-            
-            .dice-label {
-                color: #fbbf24;
-                font-size: 1.5rem;
-                margin-top: 1rem;
-                font-weight: bold;
-                text-shadow: 0 0 10px rgba(251, 191, 36, 0.5);
-            }
-            
-            @media (max-width: 768px) {
-                .actions-grid {
-                    grid-template-columns: 1fr;
-                }
-            }
-        `;
-        document.head.appendChild(style);
         
         document.querySelector('.environnement > div').appendChild(gameArea);
         
@@ -458,10 +412,10 @@ function genererEnnemi(niveau) {
     updateHP();
 }
 
-// ===== GESTION DES ACTIONS DU JOUEUR =====
+// ===== CHOIX DE PORTÉE =====
 
-function choisirEtAttaquer(porteeChoisie) {
-    const buttons = document.querySelectorAll('.action-btn');
+function choisirPortee(porteeChoisie) {
+    const buttons = document.querySelectorAll('#actions-container .action-btn');
     buttons.forEach(btn => btn.disabled = true);
     
     gameState.tour++;
@@ -470,6 +424,7 @@ function choisirEtAttaquer(porteeChoisie) {
     gameState.portee = porteeChoisie;
     logMessage(`Vous choisissez la ${porteeChoisie} portée`, 'info');
     
+    // Calcul des stats selon la portée
     if (gameState.portee === 'longue') {
         gameState.attaqueActuelle = gameState.pnj.attaque - (gameState.pnj.attaque * 0.25);
         gameState.defenseActuelle = gameState.pnj.defense + (gameState.pnj.defense * 0.25);
@@ -484,15 +439,119 @@ function choisirEtAttaquer(porteeChoisie) {
         logMessage('Attaque +25%, Défense -25%', 'info');
     }
     
-    // Lance l'animation de dé pour le tour du joueur
+    // Affiche la sélection des compétences
     setTimeout(() => {
-        tourJoueur(buttons);
+        afficherSelectionSkills();
     }, 500);
+}
+
+// ===== AFFICHAGE SÉLECTION DES COMPÉTENCES =====
+
+function afficherSelectionSkills() {
+    gameState.skillsChoisis = [];
+    
+    const classStats = getClassStats(selectedClass);
+    const actionsContainer = document.getElementById('actions-container');
+    
+    actionsContainer.innerHTML = `
+        <h4 style="text-align: center; margin-bottom: 1rem;">✨ Choisissez 2 compétences (${gameState.skillsChoisis.length}/2)</h4>
+        <div class="actions-grid" id="skills-grid">
+            ${classStats.skills.map((skill, index) => `
+                <button class="action-btn skill-btn" onclick="choisirSkill(${index})">
+                    <div style="font-size: 2rem; margin-bottom: 0.5rem;">${skill.icon}</div>
+                    <strong>${skill.nom}</strong>
+                    <br>${skill.description}
+                </button>
+            `).join('')}
+        </div>
+        <div style="text-align: center; margin-top: 1rem;">
+            <button id="valider-skills" class="action-btn" style="opacity: 0.5; pointer-events: none;" onclick="validerSkills()">
+                Valider et Attaquer
+            </button>
+        </div>
+    `;
+}
+
+// ===== CHOIX D'UNE COMPÉTENCE =====
+
+function choisirSkill(index) {
+    const classStats = getClassStats(selectedClass);
+    const skillButtons = document.querySelectorAll('.skill-btn');
+    const validerBtn = document.getElementById('valider-skills');
+    const skill = classStats.skills[index];
+    const cost = skill.manaCost ?? 0;
+    
+    // Si le Mana est insuffisant
+    if (cost > gameState.pnj.mana) {
+    logMessage('Mana insuffisante pour cette compétence !', 'warning');
+    return;
+    }
+    // Si le skill est déjà sélectionné, on le désélectionne
+    const skillIndex = gameState.skillsChoisis.indexOf(index);
+    if (skillIndex !== -1) {
+        gameState.skillsChoisis.splice(skillIndex, 1);
+        skillButtons[index].classList.remove('selected-skill');
+    } else {
+        // Si on a déjà 2 skills, on ne peut pas en ajouter
+        if (gameState.skillsChoisis.length >= 2) {
+            logMessage('Vous ne pouvez choisir que 2 compétences !', 'warning');
+            return;
+        }
+        
+        gameState.skillsChoisis.push(index);
+        skillButtons[index].classList.add('selected-skill');
+    }
+    
+    // Mise à jour du titre
+    const titre = document.querySelector('#actions-container h4');
+    titre.textContent = `✨ Choisissez 2 compétences (${gameState.skillsChoisis.length}/2)`;
+    
+    // Active le bouton valider si 2 skills sont sélectionnés
+    if (gameState.skillsChoisis.length === 2) {
+        validerBtn.style.opacity = '1';
+        validerBtn.style.pointerEvents = 'auto';
+        logMessage('Compétences sélectionnées ! Cliquez sur "Valider et Attaquer"', 'success');
+    } else {
+        validerBtn.style.opacity = '0.5';
+        validerBtn.style.pointerEvents = 'none';
+    }
+}
+
+// ===== VALIDATION DES COMPÉTENCES =====
+
+function validerSkills() {
+    if (gameState.skillsChoisis.length !== 2) {
+        logMessage('Vous devez choisir exactement 2 compétences !', 'warning');
+        return;
+    }
+    
+    const classStats = getClassStats(selectedClass);
+    
+    logMessage('\n🌟 Application des compétences:', 'success');
+    
+    // Applique les effets des 2 compétences
+    gameState.skillsChoisis.forEach(index => {
+    const skill = classStats.skills[index];
+
+    gameState.pnj.mana -= skill.manaCost ?? 0; // ← AJOUT
+    updateMana();
+
+    const resultat = skill.effet(gameState);
+    logMessage(`${skill.icon} ${skill.nom}: ${resultat}`, 'success');
+    });
+    
+    // Désactive tous les boutons et lance le combat
+    const buttons = document.querySelectorAll('#actions-container .action-btn');
+    buttons.forEach(btn => btn.disabled = true);
+    
+    setTimeout(() => {
+        tourJoueur();
+    }, 1000);
 }
 
 // ===== TOUR DU JOUEUR =====
 
-function tourJoueur(buttons) {
+function tourJoueur() {
     logMessage('\n🗡️ Votre tour !', 'info');
     
     afficherAnimationDe(20, (de20) => {
@@ -520,20 +579,30 @@ function tourJoueur(buttons) {
                         logMessage('L\'ennemi est vaincu !', 'success');
                         setTimeout(() => finDePartie(), 1500);
                     } else {
-                        setTimeout(() => tourEnnemi(buttons), 1500);
+                        // Réinitialise les stats temporaires avant le tour ennemi
+                        resetStatsTemporaires();
+                        setTimeout(() => tourEnnemi(), 1500);
                     }
                 });
             }, 500);
         } else {
             logMessage('✗ Vous ratez votre attaque !', 'danger');
-            setTimeout(() => tourEnnemi(buttons), 1500);
+            resetStatsTemporaires();
+            setTimeout(() => tourEnnemi(), 1500);
         }
     });
 }
 
+// ===== RÉINITIALISATION DES STATS TEMPORAIRES =====
+
+function resetStatsTemporaires() {
+    const classStats = getClassStats(selectedClass);
+    gameState.pnj.degats = classStats.stats.degats;
+}
+
 // ===== TOUR DE L'ENNEMI =====
 
-function tourEnnemi(buttons) {
+function tourEnnemi() {
     logMessage('\n👹 Tour de l\'ennemi !', 'warning');
     
     afficherAnimationDe(20, (de20) => {
@@ -561,17 +630,40 @@ function tourEnnemi(buttons) {
                         logMessage('Vous êtes mort...', 'danger');
                         setTimeout(() => finDePartie(), 1500);
                     } else {
-                        buttons.forEach(btn => btn.disabled = false);
-                        afficherEtat();
+                        nouveauTour();
                     }
                 });
             }, 500);
         } else {
             logMessage('✗ L\'ennemi rate son attaque !', 'success');
-            buttons.forEach(btn => btn.disabled = false);
-            afficherEtat();
+            nouveauTour();
         }
     });
+}
+
+// ===== NOUVEAU TOUR =====
+
+function nouveauTour() {
+    afficherEtat();
+    
+    const actionsContainer = document.getElementById('actions-container');
+    actionsContainer.innerHTML = `
+        <h4 style="text-align: center; margin-bottom: 1rem;">⚔️ Choisissez votre position</h4>
+        <div class="actions-grid">
+            <button class="action-btn" onclick="choisirPortee('longue')">
+                🏹 Longue portée<br>
+                <small>Attaque -25% | Défense +25%</small>
+            </button>
+            <button class="action-btn" onclick="choisirPortee('moyenne')">
+                ⚔️ Portée moyenne<br>
+                <small>Stats normales</small>
+            </button>
+            <button class="action-btn" onclick="choisirPortee('courte')">
+                🗡️ Courte portée<br>
+                <small>Attaque +25% | Défense -25%</small>
+            </button>
+        </div>
+    `;
 }
 
 // ===== FONCTIONS UTILITAIRES DE JEU =====
