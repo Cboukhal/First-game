@@ -16,8 +16,8 @@ let gameState = {
     mob: {
         pv: 50,
         pvMax: 50,
-        attaque: 8,
-        defense: 8,
+        attaque: 0,
+        defense: 10,
         degats: 4
     },
     portee: null,
@@ -142,6 +142,19 @@ function updateMana() {
             playerManaBar.style.background = 'linear-gradient(90deg, #8b5cf6, #7c3aed)';
         }
     }
+}
+
+// ===== MISE À JOUR DES STATS AFFICHÉES =====
+function updateStatsDisplay() {
+    const statAttaque = document.getElementById('stat-attaque');
+    const statDefense = document.getElementById('stat-defense');
+    const statDegats = document.getElementById('stat-degats');
+    const statMagie = document.getElementById('stat-magie');
+    
+    if (statAttaque) statAttaque.textContent = Math.floor(gameState.attaqueActuelle || gameState.pnj.attaque);
+    if (statDefense) statDefense.textContent = Math.floor(gameState.defenseActuelle || gameState.pnj.defense);
+    if (statDegats) statDegats.textContent = gameState.pnj.degats;
+    if (statMagie) statMagie.textContent = gameState.pnj.magie;
 }
 
 // ===== INITIALISATION DU JEU =====
@@ -338,16 +351,39 @@ function startGame() {
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; margin: 2rem 0;">
                 <div class="hp-container">
                     <h4 style="color: #22c55e; margin-bottom: 0.5rem;">🛡️ Vous (${classStats.name})</h4>
+                    
+                    <!-- Barres de vie et mana -->
                     <div class="hp-bar-container">
                         <div class="hp-bar" id="player-hp-bar" style="width: 100%;"></div>
                     </div>
                     <p id="player-hp-text" class="hp-text">${gameState.pnj.pv} / ${gameState.pnj.pvMax} PV</p>
                     
-                    <!-- AJOUTER LA BARRE DE MANA -->
                     <div class="hp-bar-container" style="margin-top: 0.5rem;">
                         <div class="mana-bar" id="player-mana-bar" style="width: 100%;"></div>
                     </div>
                     <p id="player-mana-text" class="hp-text" style="color: #3b82f6;">${gameState.pnj.mana} / ${gameState.pnj.manaMax} Mana</p>
+                    
+                    <!-- Statistiques du personnage -->
+                    <div class="stats-container" style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid rgba(139, 92, 246, 0.3);">
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; font-size: 0.9rem;">
+                            <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                <span style="opacity: 0.8;">⚔️ Attaque:</span>
+                                <span style="font-weight: bold; color: #fbbf24;" id="stat-attaque">${gameState.pnj.attaque}</span>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                <span style="opacity: 0.8;">🛡️ Défense:</span>
+                                <span style="font-weight: bold; color: #3b82f6;" id="stat-defense">${gameState.pnj.defense}</span>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                <span style="opacity: 0.8;">💥 Dégâts:</span>
+                                <span style="font-weight: bold; color: #ef4444;" id="stat-degats">${gameState.pnj.degats}</span>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                <span style="opacity: 0.8;">✨ Magie:</span>
+                                <span style="font-weight: bold; color: #8b5cf6;" id="stat-magie">${gameState.pnj.magie}</span>
+                            </div>
+                        </div>
+                    </div>
                 </div>
                 <div class="hp-container">
                     <h4 style="color: #ef4444; margin-bottom: 0.5rem;">👹 Ennemi</h4>
@@ -438,6 +474,8 @@ function choisirPortee(porteeChoisie) {
         gameState.defenseActuelle = gameState.pnj.defense - (gameState.pnj.defense * 0.25);
         logMessage('Attaque +25%, Défense -25%', 'info');
     }
+
+    updateStatsDisplay();
     
     // Affiche la sélection des compétences
     setTimeout(() => {
@@ -529,6 +567,8 @@ function validerSkills() {
     
     logMessage('\n🌟 Application des compétences:', 'success');
     
+    updateStatsDisplay();
+
     // Applique les effets des 2 compétences
     gameState.skillsChoisis.forEach(index => {
     const skill = classStats.skills[index];
@@ -560,7 +600,7 @@ function tourJoueur() {
         logMessage(`Jet d'attaque: ${de20} + ${Math.floor(gameState.attaqueActuelle)} = ${jetAttaque}`, 'info');
         logMessage(`Défense ennemie: ${gameState.mob.defense}`, 'info');
         
-        if (jetAttaque >= gameState.mob.defense) {
+        if ((jetAttaque >= gameState.mob.defense && de20 != 1) || de20 == 20) {
             logMessage('✓ Vous touchez l\'ennemi !', 'success');
             
             setTimeout(() => {
@@ -598,6 +638,7 @@ function tourJoueur() {
 function resetStatsTemporaires() {
     const classStats = getClassStats(selectedClass);
     gameState.pnj.degats = classStats.stats.degats;
+    updateStatsDisplay();
 }
 
 // ===== TOUR DE L'ENNEMI =====
@@ -611,7 +652,7 @@ function tourEnnemi() {
         logMessage(`Jet d'attaque: ${de20} + ${gameState.mob.attaque} = ${jetAttaque}`, 'warning');
         logMessage(`Votre défense: ${Math.floor(gameState.defenseActuelle)}`, 'info');
         
-        if (jetAttaque >= Math.floor(gameState.defenseActuelle)) {
+        if ((jetAttaque >= Math.floor(gameState.defenseActuelle) && de20 != 1) || de20 == 20) {
             logMessage('✓ L\'ennemi vous touche !', 'danger');
             
             setTimeout(() => {
@@ -664,6 +705,7 @@ function nouveauTour() {
             </button>
         </div>
     `;
+    updateStatsDisplay();
 }
 
 // ===== FONCTIONS UTILITAIRES DE JEU =====
