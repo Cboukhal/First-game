@@ -184,16 +184,21 @@ function initGame() {
     const cards = document.querySelectorAll('.classe-card');
     const btnStart = document.getElementById('btnStart');
 
-    if (cards.length > 0) {
-        cards.forEach(card => {
-            card.addEventListener('click', function() {
+    if (cards.length > 0)
+    {
+        cards.forEach(card =>
+        {
+            card.addEventListener('click', function()
+            {
                 selectClass(this, cards, btnStart);
             });
         });
     }
 
-    if (btnStart) {
-        btnStart.addEventListener('click', function() {
+    if (btnStart)
+    {
+        btnStart.addEventListener('click', function()
+        {
             startGame();
         });
     }
@@ -201,24 +206,30 @@ function initGame() {
 
 // ===== SÉLECTION DE CLASSE =====
 
-function selectClass(selectedCard, allCards, button) {
+function selectClass(selectedCard, allCards, button)
+{
     allCards.forEach(c => c.classList.remove('selected'));
     selectedCard.classList.add('selected');
     selectedClass = selectedCard.dataset.classe;
     
-    if (button) {
+    if (button)
+    {
         button.classList.add('active');
     }
     
     console.log('Classe sélectionnée:', selectedClass);
 }
 
-function getClassStats(className) {
-    const classData = {
-        guerrier: {
+function getClassStats(className)
+{
+    const classData =
+    {
+        guerrier:
+        {
             name: 'Guerrier',
             icon: '⚔️',
-            stats: {
+            stats:
+            {
                 pv: 120,
                 attaque: 12,
                 defense: 10,
@@ -232,18 +243,24 @@ function getClassStats(className) {
                     type: 'attaque',
                     manaCost: 0,
                     description: 'Attaque physique puissante',
-                    effet: (gameState) => {
+                    effet: (gameState) =>
+                        {
                         // Jet d'attaque
-                        return new Promise((resolve) => {
-                            afficherAnimationDe(20, (de20) => {
+                        return new Promise((resolve) =>
+                            {
+                            afficherAnimationDe(20, (de20) =>
+                                {
                                 const jetAttaque = Math.floor(gameState.attaqueActuelle) + de20 + 3; // Bonus de +3
                                 logMessage(`Jet d'attaque: ${de20} + ${Math.floor(gameState.attaqueActuelle)} + 3 = ${jetAttaque}`, 'info');
                                 
-                                if ((jetAttaque >= gameState.mob.defense && de20 != 1) || de20 == 20) {
+                                if ((jetAttaque >= gameState.mob.defense && de20 != 1) || de20 == 20)
+                                {
                                     logMessage('✓ Coup puissant touche !', 'success');
                                     
-                                    setTimeout(() => {
-                                        afficherAnimationDe(6, (de6) => {
+                                    setTimeout(() =>
+                                    {
+                                        afficherAnimationDe(6, (de6) =>
+                                        {
                                             const degats = gameState.pnj.degats + de6 + 5; // Bonus de dégâts
                                             gameState.mob.pv -= degats;
                                             if (gameState.mob.pv < 0) gameState.mob.pv = 0;
@@ -253,7 +270,9 @@ function getClassStats(className) {
                                             resolve({ success: true, degats });
                                         });
                                     }, 500);
-                                } else {
+                                }
+                                else
+                                {
                                     logMessage('✗ Coup puissant raté !', 'danger');
                                     resolve({ success: false });
                                 }
@@ -265,7 +284,8 @@ function getClassStats(className) {
                     nom: 'Bouclier', 
                     icon: '🛡️',
                     description : 'Défense +5 pour ce tour',
-                    effet: (gameState) => {
+                    effet: (gameState) =>
+                    {
                         ajouterBuff('Bouclier', 'defense', 5, 1);
                         return Promise.resolve({ success: true });
                     }
@@ -275,7 +295,8 @@ function getClassStats(className) {
                     icon: '💪',
                     manaCost: 10,
                     description : 'Attaque +3 pour ce tour = 10 mana',
-                    effet: (gameState) => {
+                    effet: (gameState) =>
+                    {
                         ajouterBuff('Renforcement', 'attaque', 3, 3);
                         return Promise.resolve({ success: true });
                     }
