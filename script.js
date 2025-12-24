@@ -23,7 +23,8 @@ let gameState = {
     portee: null,
     attaqueActuelle: 0,
     defenseActuelle: 0,
-    skillsChoisis: [] // Nouvelle propriété pour les skills
+    skillsChoisis: [], // Nouvelle propriété pour les skills
+    buffActifs: []
 };
 
 // ===== FONCTIONS UTILITAIRES =====
@@ -208,10 +209,36 @@ function getClassStats(className) {
                 { 
                     nom: 'Coup puissant', 
                     icon: '💥',
-                    description : 'Dégâts +5 pour ce tour',
+                    type: 'attaque',
+                    manaCost: 0,
+                    description: 'Attaque physique puissante',
                     effet: (gameState) => {
-                        gameState.pnj.degats += 5;
-                        return 'Dégâts +5 pour ce tour';
+                        // Jet d'attaque
+                        return new Promise((resolve) => {
+                            afficherAnimationDe(20, (de20) => {
+                                const jetAttaque = Math.floor(gameState.attaqueActuelle) + de20 + 3; // Bonus de +3
+                                logMessage(`Jet d'attaque: ${de20} + ${Math.floor(gameState.attaqueActuelle)} + 3 = ${jetAttaque}`, 'info');
+                                
+                                if ((jetAttaque >= gameState.mob.defense && de20 != 1) || de20 == 20) {
+                                    logMessage('✓ Coup puissant touche !', 'success');
+                                    
+                                    setTimeout(() => {
+                                        afficherAnimationDe(6, (de6) => {
+                                            const degats = gameState.pnj.degats + de6 + 5; // Bonus de dégâts
+                                            gameState.mob.pv -= degats;
+                                            if (gameState.mob.pv < 0) gameState.mob.pv = 0;
+                                            
+                                            logMessage(`Dégâts: ${degats} infligés !`, 'success');
+                                            updateHP();
+                                            resolve({ success: true, degats });
+                                        });
+                                    }, 500);
+                                } else {
+                                    logMessage('✗ Coup puissant raté !', 'danger');
+                                    resolve({ success: false });
+                                }
+                            });
+                        });
                     }
                 },
                 { 
@@ -219,8 +246,8 @@ function getClassStats(className) {
                     icon: '🛡️',
                     description : 'Défense +5 pour ce tour',
                     effet: (gameState) => {
-                        gameState.defenseActuelle += 5;
-                        return 'Défense +5 pour ce tour';
+                        ajouterBuff('Bouclier', 'defense', 5, 1);
+                        return Promise.resolve({ success: true });
                     }
                 },
                 { 
@@ -229,8 +256,8 @@ function getClassStats(className) {
                     manaCost: 10,
                     description : 'Attaque +3 pour ce tour = 10 mana',
                     effet: (gameState) => {
-                        gameState.attaqueActuelle += 3;
-                        return 'Attaque +3 pour ce tour';
+                        ajouterBuff('Renforcement', 'attaque', 3, 3);
+                        return Promise.resolve({ success: true });
                     }
                 }
             ]
@@ -249,13 +276,33 @@ function getClassStats(className) {
                 {
                 nom: 'Flamme',
                 icon: '🔥',
-                description: "à voir",
+                type: 'magie',
+                manaCost: 20,
+                description: 'Attaque magique puissante (Coût: 20 mana)',
                 effet: (gameState) => {
-                    const degatsBonus = gameState.pnj.magie;
-                    gameState.pnj.degats += degatsBonus;
-                    return `Dégâts magiques +${degatsBonus}`;
+                    return new Promise((resolve) => {
+                        afficherAnimationDe(20, (de20) => {
+                            const jetMagie = gameState.pnj.magie + de20;
+                            logMessage(`Jet de magie: ${de20} + ${gameState.pnj.magie} = ${jetMagie}`, 'info');
+                            
+                            if ((jetMagie >= gameState.mob.defense && de20 != 1) || de20 == 20) {
+                                logMessage('✓ La boule de feu frappe !', 'success');
+                                
+                                const degats = Math.floor(gameState.pnj.magie * 1.5) + lancerDe(8);
+                                gameState.mob.pv -= degats;
+                                if (gameState.mob.pv < 0) gameState.mob.pv = 0;
+                                
+                                logMessage(`Dégâts magiques: ${degats} infligés !`, 'success');
+                                updateHP();
+                                resolve({ success: true, degats });
+                            } else {
+                                logMessage('✗ Sort raté !', 'danger');
+                                resolve({ success: false });
+                            }
+                        });
+                    });
                 }
-                },
+            },
                 { 
                     nom: 'Coup rapide', 
                     icon: '⚡',
@@ -290,13 +337,37 @@ function getClassStats(className) {
             },
             skills: [
                 { 
-                    nom: 'Frappe mortelle', 
+                   nom: 'Frappe précise', 
                     icon: '🎯',
-                    description: 'Dégâts +7, Défense -2',
+                    type: 'attaque',
+                    manaCost: 0,
+                    description: 'Attaque rapide et précise',
                     effet: (gameState) => {
-                        gameState.pnj.degats += 7;
-                        gameState.defenseActuelle -= 2;
-                        return 'Dégâts +7, Défense -2';
+                        return new Promise((resolve) => {
+                            afficherAnimationDe(20, (de20) => {
+                                const jetAttaque = Math.floor(gameState.attaqueActuelle) + de20 + 5;
+                                logMessage(`Jet d'attaque: ${de20} + ${Math.floor(gameState.attaqueActuelle)} + 5 = ${jetAttaque}`, 'info');
+                                
+                                if ((jetAttaque >= gameState.mob.defense && de20 != 1) || de20 == 20) {
+                                    logMessage('✓ Frappe sournoise réussie !', 'success');
+                                    
+                                    setTimeout(() => {
+                                        afficherAnimationDe(8, (de8) => {
+                                            const degats = gameState.pnj.degats + de8 + 3;
+                                            gameState.mob.pv -= degats;
+                                            if (gameState.mob.pv < 0) gameState.mob.pv = 0;
+                                            
+                                            logMessage(`Dégâts: ${degats} infligés !`, 'success');
+                                            updateHP();
+                                            resolve({ success: true, degats });
+                                        });
+                                    }, 500);
+                                } else {
+                                    logMessage('✗ Attaque ratée !', 'danger');
+                                    resolve({ success: false });
+                                }
+                            });
+                        });
                     }
                 },
                 { 
@@ -492,7 +563,7 @@ function afficherSelectionSkills() {
     const actionsContainer = document.getElementById('actions-container');
     
     actionsContainer.innerHTML = `
-        <h4 style="text-align: center; margin-bottom: 1rem;">✨ Choisissez 2 compétences (${gameState.skillsChoisis.length}/2)</h4>
+        <h4 style="text-align: center; margin-bottom: 1rem;">✨ Choisissez 2 actions (${gameState.skillsChoisis.length}/2)</h4>
         <div class="actions-grid" id="skills-grid">
             ${classStats.skills.map((skill, index) => `
                 <button class="action-btn skill-btn" onclick="choisirSkill(${index})">
@@ -504,7 +575,7 @@ function afficherSelectionSkills() {
         </div>
         <div style="text-align: center; margin-top: 1rem;">
             <button id="valider-skills" class="action-btn" style="opacity: 0.5; pointer-events: none;" onclick="validerSkills()">
-                Valider et Attaquer
+                Valider vos actions
             </button>
         </div>
     `;
@@ -555,90 +626,145 @@ function choisirSkill(index) {
     }
 }
 
+// ===== GESTION DES BUFFS =====
+function ajouterBuff(nom, stat, valeur, duree) {
+    // Vérifie si le buff existe déjà
+    const buffExistant = gameState.buffsActifs.find(b => b.nom === nom);
+    
+    if (buffExistant) {
+        // Renouvelle la durée
+        buffExistant.duree = duree;
+        logMessage(`${nom} renouvelé pour ${duree} tours`, 'info');
+    } else {
+        // Ajoute un nouveau buff
+        gameState.buffsActifs.push({
+            nom: nom,
+            stat: stat,
+            valeur: valeur,
+            duree: duree
+        });
+        logMessage(`${nom} appliqué pour ${duree} tours`, 'success');
+    }
+    
+    appliquerBuffs();
+}
+
+function appliquerBuffs() {
+    const classStats = getClassStats(selectedClass);
+    
+    // Réinitialise les stats aux valeurs de base + portée
+    if (gameState.portee === 'longue') {
+        gameState.attaqueActuelle = gameState.pnj.attaque - (gameState.pnj.attaque * 0.25);
+        gameState.defenseActuelle = gameState.pnj.defense + (gameState.pnj.defense * 0.25);
+    } else if (gameState.portee === 'moyenne') {
+        gameState.attaqueActuelle = gameState.pnj.attaque;
+        gameState.defenseActuelle = gameState.pnj.defense;
+    } else {
+        gameState.attaqueActuelle = gameState.pnj.attaque + (gameState.pnj.attaque * 0.25);
+        gameState.defenseActuelle = gameState.pnj.defense - (gameState.pnj.defense * 0.25);
+    }
+    
+    gameState.pnj.degats = classStats.stats.degats;
+    
+    // Applique tous les buffs actifs
+    gameState.buffsActifs.forEach(buff => {
+        if (buff.stat === 'attaque') {
+            gameState.attaqueActuelle += buff.valeur;
+        } else if (buff.stat === 'defense') {
+            gameState.defenseActuelle += buff.valeur;
+        } else if (buff.stat === 'degats') {
+            gameState.pnj.degats += buff.valeur;
+        }
+    });
+    
+    updateStatsDisplay();
+}
+
+function decrementerBuffs() {
+    gameState.buffsActifs = gameState.buffsActifs.filter(buff => {
+        buff.duree--;
+        
+        if (buff.duree <= 0) {
+            logMessage(`${buff.nom} a expiré`, 'warning');
+            return false; // Supprime le buff
+        }
+        return true; // Garde le buff
+    });
+    
+    appliquerBuffs();
+}
+
+function afficherBuffsActifs() {
+    if (gameState.buffsActifs.length > 0) {
+        logMessage('\n🌟 Buffs actifs:', 'info');
+        gameState.buffsActifs.forEach(buff => {
+            logMessage(`  • ${buff.nom} (${buff.duree} tours restants)`, 'info');
+        });
+    }
+}
+
 // ===== VALIDATION DES COMPÉTENCES =====
 
-function validerSkills() {
+async function validerSkills() {
     if (gameState.skillsChoisis.length !== 2) {
         logMessage('Vous devez choisir exactement 2 compétences !', 'warning');
         return;
     }
     
     const classStats = getClassStats(selectedClass);
+    const buffs = [];
+    const attaques = [];
     
-    logMessage('\n🌟 Application des compétences:', 'success');
+    logMessage('\n🌟 Exécution des actions:', 'success');
     
-    updateStatsDisplay();
-
-    // Applique les effets des 2 compétences
-    gameState.skillsChoisis.forEach(index => {
-    const skill = classStats.skills[index];
-
-    gameState.pnj.mana -= skill.manaCost ?? 0; // ← AJOUT
-    updateMana();
-
-    const resultat = skill.effet(gameState);
-    logMessage(`${skill.icon} ${skill.nom}: ${resultat}`, 'success');
-    });
-    
-    // Désactive tous les boutons et lance le combat
+    // Désactive tous les boutons
     const buttons = document.querySelectorAll('#actions-container .action-btn');
     buttons.forEach(btn => btn.disabled = true);
     
-    setTimeout(() => {
-        tourJoueur();
-    }, 1000);
-}
-
-// ===== TOUR DU JOUEUR =====
-
-function tourJoueur() {
-    logMessage('\n🗡️ Votre tour !', 'info');
-    
-    afficherAnimationDe(20, (de20) => {
-        const jetAttaque = Math.floor(gameState.attaqueActuelle) + de20;
+    // Applique les effets des 2 compétences de manière séquentielle
+    for (const index of gameState.skillsChoisis) {
+        const skill = classStats.skills[index];
         
-        logMessage(`Jet d'attaque: ${de20} + ${Math.floor(gameState.attaqueActuelle)} = ${jetAttaque}`, 'info');
-        logMessage(`Défense ennemie: ${gameState.mob.defense}`, 'info');
-        
-        if ((jetAttaque >= gameState.mob.defense && de20 != 1) || de20 == 20) {
-            logMessage('✓ Vous touchez l\'ennemi !', 'success');
-            
-            setTimeout(() => {
-                afficherAnimationDe(6, (de6) => {
-                    const degats = gameState.pnj.degats + de6;
-                    
-                    logMessage(`Dégâts: ${gameState.pnj.degats} + ${de6} = ${degats}`, 'success');
-                    
-                    gameState.mob.pv -= degats;
-                    if (gameState.mob.pv < 0) gameState.mob.pv = 0;
-                    
-                    logMessage(`L'ennemi perd ${degats} PV ! (PV restants: ${gameState.mob.pv})`, 'danger');
-                    updateHP();
-                    
-                    if (gameState.mob.pv <= 0) {
-                        logMessage('L\'ennemi est vaincu !', 'success');
-                        setTimeout(() => finDePartie(), 1500);
-                    } else {
-                        // Réinitialise les stats temporaires avant le tour ennemi
-                        resetStatsTemporaires();
-                        setTimeout(() => tourEnnemi(), 1500);
-                    }
-                });
-            }, 500);
+        if (skill.type === 'attaque') {
+            attaques.push(skill);
         } else {
-            logMessage('✗ Vous ratez votre attaque !', 'danger');
-            resetStatsTemporaires();
-            setTimeout(() => tourEnnemi(), 1500);
+            buffs.push(skill);
         }
-    });
+        // Consomme la mana
+        gameState.pnj.mana -= skill.manaCost ?? 0;
+        updateMana();
+        
+        logMessage(`\n${skill.icon} ${skill.nom}`, 'warning');
+        
+        // Attend que l'effet se termine
+        await skill.effet(gameState);
+        
+        // Vérifie si l'ennemi est mort
+        if (gameState.mob.pv <= 0) {
+            logMessage('L\'ennemi est vaincu !', 'success');
+            setTimeout(() => finDePartie(), 1500);
+            return;
+        }
+        
+        // Petit délai entre les deux actions
+        await new Promise(resolve => setTimeout(resolve, 800));
+    }
+    
+    // Réinitialise les stats temporaires et passe au tour ennemi
+    resetStatsTemporaires();
+    
+    setTimeout(() => tourEnnemi(), 1000);
 }
+
+
 
 // ===== RÉINITIALISATION DES STATS TEMPORAIRES =====
 
 function resetStatsTemporaires() {
-    const classStats = getClassStats(selectedClass);
-    gameState.pnj.degats = classStats.stats.degats;
-    updateStatsDisplay();
+    // const classStats = getClassStats(selectedClass);
+    // gameState.pnj.degats = classStats.stats.degats;
+    // updateStatsDisplay();
+    appliquerBuffs();
 }
 
 // ===== TOUR DE L'ENNEMI =====
@@ -671,12 +797,16 @@ function tourEnnemi() {
                         logMessage('Vous êtes mort...', 'danger');
                         setTimeout(() => finDePartie(), 1500);
                     } else {
+                        decrementerBuffs();
+                        afficherBuffsActifs();
                         nouveauTour();
                     }
                 });
             }, 500);
         } else {
             logMessage('✗ L\'ennemi rate son attaque !', 'success');
+            decrementerBuffs();
+            afficherBuffsActifs();
             nouveauTour();
         }
     });
@@ -685,6 +815,7 @@ function tourEnnemi() {
 // ===== NOUVEAU TOUR =====
 
 function nouveauTour() {
+    appliquerBuffs();
     afficherEtat();
     
     const actionsContainer = document.getElementById('actions-container');
