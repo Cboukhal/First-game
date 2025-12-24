@@ -23,44 +23,50 @@ let gameState = {
     portee: null,
     attaqueActuelle: 0,
     defenseActuelle: 0,
-    skillsChoisis: [], // Nouvelle propriété pour les skills
+    skillsChoisis: [],
     buffActifs: []
 };
 
 // ===== FONCTIONS UTILITAIRES =====
 
-function lancerDe(faces) {
+function lancerDe(faces)
+{
     return Math.floor(Math.random() * faces) + 1;
 }
 
-function random(min, max) {
+function random(min, max)
+{
     return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
-function logMessage(message, type = 'info') {
+function logMessage(message, type = 'info')
+{
     console.log(`[${type.toUpperCase()}] ${message}`);
     
     const logDiv = document.getElementById('combat-log');
-    if (logDiv) {
-        const colors = {
-            'info': '#94a3b8',
-            'success': '#22c55e',
-            'danger': '#ef4444',
-            'warning': '#fbbf24'
-        };
-        
-        const p = document.createElement('p');
-        p.style.color = colors[type] || colors.info;
-        p.style.margin = '0.5rem 0';
-        p.textContent = message;
-        logDiv.appendChild(p);
-        
-        logDiv.scrollTop = logDiv.scrollHeight;
-    }
+    if (logDiv)
+        {
+            const colors =
+            {
+                'info': '#94a3b8',
+                'success': '#22c55e',
+                'danger': '#ef4444',
+                'warning': '#fbbf24'
+            };
+            
+            const p = document.createElement('p');
+            p.style.color = colors[type] || colors.info;
+            p.style.margin = '0.5rem 0';
+            p.textContent = message;
+            logDiv.appendChild(p);
+            
+            logDiv.scrollTop = logDiv.scrollHeight;
+        }
 }
 
 // ===== ANIMATION DE DÉ =====
-function afficherAnimationDe(faces, callback) {
+function afficherAnimationDe(faces, callback)
+{
     const diceOverlay = document.createElement('div');
     diceOverlay.id = 'dice-overlay';
     diceOverlay.innerHTML = `
@@ -81,14 +87,16 @@ function afficherAnimationDe(faces, callback) {
         dice.style.transform = `rotate(${counter * 45}deg) scale(${1 + Math.sin(counter) * 0.2})`;
         counter++;
         
-        if (counter >= maxRolls) {
+        if (counter >= maxRolls)
+        {
             clearInterval(rollInterval);
             const finalResult = lancerDe(faces);
             dice.textContent = finalResult;
             dice.style.transform = 'rotate(0deg) scale(1.5)';
             dice.classList.add('dice-final');
             
-            setTimeout(() => {
+            setTimeout(() =>
+            {
                 diceOverlay.remove();
                 callback(finalResult);
             }, 800);
@@ -108,16 +116,22 @@ function updateHP() {
         playerHPBar.style.width = playerPercent + '%';
         playerHPText.textContent = `${gameState.pnj.pv} / ${gameState.pnj.pvMax} PV`;
         
-        if (playerPercent > 50) {
+        if (playerPercent > 50)
+        {
             playerHPBar.style.background = 'linear-gradient(90deg, #22c55e, #16a34a)';
-        } else if (playerPercent > 25) {
+        }
+        else if (playerPercent > 25)
+        {
             playerHPBar.style.background = 'linear-gradient(90deg, #f59e0b, #d97706)';
-        } else {
+        }
+        else
+        {
             playerHPBar.style.background = 'linear-gradient(90deg, #ef4444, #dc2626)';
         }
     }
     updateMana()
-    if (enemyHPBar && enemyHPText) {
+    if (enemyHPBar && enemyHPText)
+    {
         const enemyPercent = (gameState.mob.pv / gameState.mob.pvMax) * 100;
         enemyHPBar.style.width = enemyPercent + '%';
         enemyHPText.textContent = `${gameState.mob.pv} / ${gameState.mob.pvMax} PV`;
@@ -129,17 +143,23 @@ function updateMana() {
     const playerManaBar = document.getElementById('player-mana-bar');
     const playerManaText = document.getElementById('player-mana-text');
     
-    if (playerManaBar && playerManaText) {
+    if (playerManaBar && playerManaText)
+    {
         const manaPercent = (gameState.pnj.mana / gameState.pnj.manaMax) * 100;
         playerManaBar.style.width = manaPercent + '%';
         playerManaText.textContent = `${gameState.pnj.mana} / ${gameState.pnj.manaMax} Mana`;
         
         // Changement de couleur selon la mana
-        if (manaPercent > 50) {
+        if (manaPercent > 50)
+        {
             playerManaBar.style.background = 'linear-gradient(90deg, #3b82f6, #2563eb)';
-        } else if (manaPercent > 25) {
+        }
+        else if (manaPercent > 25)
+        {
             playerManaBar.style.background = 'linear-gradient(90deg, #6366f1, #4f46e5)';
-        } else {
+        }
+        else
+        {
             playerManaBar.style.background = 'linear-gradient(90deg, #8b5cf6, #7c3aed)';
         }
     }
