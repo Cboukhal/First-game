@@ -283,7 +283,9 @@ function getClassStats(className)
                 { 
                     nom: 'Bouclier', 
                     icon: '🛡️',
-                    description : 'Défense +5 pour ce tour',
+                    type: 'buff',
+                    manaCost: 0,
+                    description : 'Défense +5 pour 1 tour',
                     effet: (gameState) =>
                     {
                         ajouterBuff('Bouclier', 'defense', 5, 1);
@@ -293,13 +295,14 @@ function getClassStats(className)
                 { 
                     nom: 'Renforcement', 
                     icon: '💪',
+                    type: 'buff',
                     manaCost: 10,
-                    description : 'Attaque +3 pour ce tour = 10 mana',
+                    description : 'Attaque +3 pour 3 tours (Coût: 10 mana)',
                     effet: (gameState) =>
                     {
                         ajouterBuff('Renforcement', 'attaque', 3, 3);
                         return Promise.resolve({ success: true });
-                    }
+    }
                 }
             ]
         },
