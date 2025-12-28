@@ -178,6 +178,16 @@ function updateStatsDisplay() {
     if (statMagie) statMagie.textContent = gameState.pnj.magie;
 }
 
+function updateClassTitle() {
+    const classTitle = document.getElementById('player-class-title');
+    if (classTitle && gameState.specialisation) {
+        const specialisations = getSpecialisations();
+        const specData = specialisations[gameState.specialisation];
+        classTitle.textContent = `${specData.icon} Vous (${specData.name})`;
+    }
+}
+
+
 // ===== INITIALISATION DU JEU =====
 
 function initGame() {
@@ -586,6 +596,13 @@ function choisirPortee(porteeChoisie) {
         logMessage('Attaque +25%, Défense -25%', 'info');
     }
 
+    // Régénération de mana pour Paladin en position défensive
+    if (gameState.specialisation === 'paladin' && gameState.portee === 'longue') {
+        gameState.pnj.mana = Math.min(gameState.pnj.mana + 5, gameState.pnj.manaMax);
+        logMessage('🛡️ Paladin : +5 mana (position défensive)', 'success');
+        updateMana();
+    }
+
     updateStatsDisplay();
     
     // Affiche la sélection des compétences
@@ -624,7 +641,7 @@ function afficherChoixSpecialisation() {
                     <p style="color: #ef4444;">Gagne mana en prenant des coups</p>
                 </div>
             </button>
-            <button class="action-btn spec-bn" onclick="choisirSpecialisation('maitre_arme')">
+            <button class="action-btn spec-btn" onclick="choisirSpecialisation('maitre_arme')">
                 <div style="font-size: 3rem;">⚔️</div>
                 <strong style="font-size: 1.2rem;">MAÎTRE D'ARMES</strong>
                 <div style="margin-top: 0.5rem; font-size: 0.9rem;">
@@ -659,6 +676,7 @@ function choisirSpecialisation(spec) {
     logMessage(`Stats améliorées !`, 'success');
     updateHP();
     updateStatsDisplay();
+    updateClassTitle();
     
     // Continue le jeu
     setTimeout(() => {
@@ -682,8 +700,8 @@ function getSpecialisations() {
                     nom: 'Coup sacré',
                     icon: '⚔️',
                     type: 'attaque',
-                    manaCost: 20,
-                    description: 'Dégâts magiques + bonus selon PV ennemi (Coût: 20 mana)',
+                    // manaCost: 20,
+                    description: 'Dégâts magiques + 50% bonus si ennemi < 50% PV',
                     effet: (gameState) => {
                         return new Promise((resolve) => {
                             afficherAnimationDe(20, (de20) => {
@@ -693,14 +711,24 @@ function getSpecialisations() {
                                 if ((jetMagie >= gameState.mob.defense && de20 != 1) || de20 == 20) {
                                     logMessage('✓ Le coup sacré frappe !', 'success');
                                     
-                                    const bonusVie = Math.floor((gameState.mob.pv / gameState.mob.pvMax) * 10);
-                                    const degats = Math.floor(gameState.pnj.magie * 1.5) + lancerDe(8) + bonusVie;
-                                    gameState.mob.pv -= degats;
-                                    if (gameState.mob.pv < 0) gameState.mob.pv = 0;
-                                    
-                                    logMessage(`Dégâts sacrés: ${degats} (bonus: +${bonusVie}) !`, 'success');
-                                    updateHP();
-                                    resolve({ success: true, degats });
+                                    setTimeout(() => {
+                                        afficherAnimationDe(8, (de8) => {
+                                            let degats = gameState.pnj.degats + Math.floor(gameState.pnj.magie / 2) + de8;
+                                            
+                                            // Bonus de 50% si l'ennemi est sous 50% PV
+                                            if (gameState.mob.pv < gameState.mob.pvMax * 0.5) {
+                                                degats = Math.floor(degats * 1.5);
+                                                logMessage('🌟 Bonus de finition : +50% dégâts !', 'success');
+                                            }
+                                            
+                                            gameState.mob.pv -= degats;
+                                            if (gameState.mob.pv < 0) gameState.mob.pv = 0;
+                                            
+                                            logMessage(`Dégâts sacrés: ${degats} infligés !`, 'success');
+                                            updateHP();
+                                            resolve({ success: true, degats });
+                                        });
+                                    }, 500);
                                 } else {
                                     logMessage('✗ Coup sacré raté !', 'danger');
                                     resolve({ success: false });
@@ -713,12 +741,12 @@ function getSpecialisations() {
                     nom: 'Bouclier divin',
                     icon: '🛡️',
                     type: 'buff',
-                    manaCost: 15,
-                    description: 'Défense +8 + réduit dégâts pour 2 tours (Coût: 15 mana)',
+                    // manaCost: 15,
+                    description: 'Défense +8 + réduit dégâts de 30% pour 2 tours',
                     effet: (gameState) => {
                         ajouterBuff('Bouclier divin', 'defense', 8, 2);
-                        gameState.reductionDegats = 0.3; // Réduit 30% des dégâts
-                        logMessage('Réduction de dégâts: 30% pour 2 tours', 'success');
+                        gameState.reductionDegats = 2; // Compteur de tours
+                        logMessage('🛡️ Bouclier divin : Réduction de 30% des dégâts pour 2 tours', 'success');
                         return Promise.resolve({ success: true });
                     }
                 },
@@ -727,16 +755,25 @@ function getSpecialisations() {
                     icon: '✨',
                     type: 'soin',
                     manaCost: 25,
-                    description: 'Restaure PV (boost si PV < 50%) (Coût: 25 mana)',
+                    description: 'Restaure PV (boost de 50% si PV < 50%) (Coût: 25 mana)',
                     effet: (gameState) => {
-                        const pourcentageVie = gameState.pnj.pv / gameState.pnj.pvMax;
-                        const soinBase = Math.floor(gameState.pnj.magie * 2);
-                        const soin = pourcentageVie < 0.5 ? Math.floor(soinBase * 1.5) : soinBase;
-                        
-                        gameState.pnj.pv = Math.min(gameState.pnj.pv + soin, gameState.pnj.pvMax);
-                        updateHP();
-                        logMessage(`Soin de ${soin} PV${pourcentageVie < 0.5 ? ' (BOOSTÉ !)' : ''}`, 'success');
-                        return Promise.resolve({ success: true });
+                        return new Promise((resolve) => {
+                            afficherAnimationDe(6, (de6) => {
+                                const pourcentageVie = gameState.pnj.pv / gameState.pnj.pvMax;
+                                let soin = (gameState.pnj.magie * 3) + de6;
+                                
+                                // Bonus de 50% si PV < 50%
+                                if (pourcentageVie < 0.5) {
+                                    soin = Math.floor(soin * 1.5);
+                                    logMessage('🌟 Soin de panique : +50% de soin !', 'success');
+                                }
+                                
+                                gameState.pnj.pv = Math.min(gameState.pnj.pv + soin, gameState.pnj.pvMax);
+                                updateHP();
+                                logMessage(`Soin de ${soin} PV`, 'success');
+                                resolve({ success: true });
+                            });
+                        });
                     }
                 }
             ]
@@ -753,10 +790,10 @@ function getSpecialisations() {
             skills: [
                 {
                     nom: 'Frappe violente',
-                    icon: '💥',
+                    icon: '🪓',
                     type: 'attaque',
                     manaCost: 0,
-                    description: 'Gros dégâts, -3 défense pour 1 tour',
+                    description: 'Gros dégâts mais -4 défense au tour suivant',
                     effet: (gameState) => {
                         return new Promise((resolve) => {
                             afficherAnimationDe(20, (de20) => {
@@ -768,12 +805,12 @@ function getSpecialisations() {
                                     
                                     setTimeout(() => {
                                         afficherAnimationDe(10, (de10) => {
-                                            const degats = gameState.pnj.degats + de10 + 8;
+                                            const degats = Math.floor(gameState.pnj.degats * 1.8) + de10;
                                             gameState.mob.pv -= degats;
                                             if (gameState.mob.pv < 0) gameState.mob.pv = 0;
                                             
-                                            ajouterBuff('Frappe violente (malus)', 'defense', -3, 1);
-                                            logMessage(`Dégâts: ${degats} infligés ! (Défense -3)`, 'success');
+                                            ajouterBuff('Frappe violente (malus)', 'defense', -4, 1);
+                                            logMessage(`💥 Dégâts brutaux : ${degats} ! (Défense -4 au prochain tour)`, 'success');
                                             updateHP();
                                             resolve({ success: true, degats });
                                         });
@@ -791,10 +828,11 @@ function getSpecialisations() {
                     icon: '🩸',
                     type: 'buff',
                     manaCost: 5,
-                    description: 'Attaque +6 / Défense -4 pour 3 tours (Coût: 5 mana)',
+                    description: 'Attaque +6 / Défense -3 pour 3 tours (Coût: 5 mana)',
                     effet: (gameState) => {
                         ajouterBuff('Rage (attaque)', 'attaque', 6, 3);
-                        ajouterBuff('Rage (défense)', 'defense', -4, 3);
+                        ajouterBuff('Rage (défense)', 'defense', -3, 3);
+                        logMessage('🩸 Rage activée : Plus fort mais plus vulnérable !', 'success');
                         return Promise.resolve({ success: true });
                     }
                 },
@@ -803,13 +841,18 @@ function getSpecialisations() {
                     icon: '🔥',
                     type: 'buff',
                     manaCost: 0,
-                    description: 'Attaque +2 cumulatif sur attaques réussies',
+                    description: '+2 dégâts par attaque réussie (Max: +10)',
                     effet: (gameState) => {
                         if (!gameState.furyStacks) gameState.furyStacks = 0;
-                        gameState.furyStacks += 2;
                         
-                        ajouterBuff('Fury', 'attaque', gameState.furyStacks, 999);
-                        logMessage(`Fury: +${gameState.furyStacks} attaque !`, 'success');
+                        if (gameState.furyStacks < 10) {
+                            gameState.furyStacks += 2;
+                            ajouterBuff('Fury', 'degats', gameState.furyStacks, 999);
+                            logMessage(`🔥 Fury : +${gameState.furyStacks} dégâts cumulés !`, 'success');
+                        } else {
+                            logMessage('🔥 Fury au maximum (+10 dégâts) !', 'warning');
+                        }
+                        
                         return Promise.resolve({ success: true });
                     }
                 }
@@ -826,34 +869,31 @@ function getSpecialisations() {
             skills: [
                 {
                     nom: 'Coup chirurgical',
-                    icon: '🎯',
+                    icon: '🗡️',
                     type: 'attaque',
                     manaCost: 5,
-                    description: 'Ignore défense + critique possible (Coût: 5 mana)',
+                    description: 'Ignore 50% de la défense ennemie (Coût: 5 mana)',
                     effet: (gameState) => {
                         return new Promise((resolve) => {
                             afficherAnimationDe(20, (de20) => {
-                                const estCritique = de20 === 20;
-                                logMessage(`Jet d'attaque: ${de20}${estCritique ? ' 🌟 CRITIQUE !' : ''}`, 'info');
+                                const jetAttaque = gameState.attaqueActuelle + de20;
+                                const defenseReduite = Math.floor(gameState.mob.defense * 0.5);
                                 
-                                if (de20 >= 10 || estCritique) {
-                                    logMessage('✓ Coup chirurgical touche !', 'success');
+                                logMessage(`Jet d'attaque: ${de20} + ${Math.floor(gameState.attaqueActuelle)} = ${jetAttaque}`, 'info');
+                                logMessage(`Défense ennemie réduite : ${gameState.mob.defense} → ${defenseReduite}`, 'info');
+                                
+                                if ((jetAttaque >= defenseReduite && de20 != 1) || de20 == 20) {
+                                    logMessage('✓ Coup chirurgical précis !', 'success');
                                     
                                     setTimeout(() => {
-                                        afficherAnimationDe(8, (de8) => {
-                                            let degats = gameState.pnj.degats + de8 + 4;
-                                            if (estCritique) {
-                                                degats *= 2;
-                                                gameState.critReduction = true;
-                                                logMessage('💥 CRITIQUE ! Dégâts doublés + réduction coûts !', 'success');
-                                            }
-                                            
+                                        afficherAnimationDe(6, (de6) => {
+                                            const degats = gameState.attaqueActuelle + de6;
                                             gameState.mob.pv -= degats;
                                             if (gameState.mob.pv < 0) gameState.mob.pv = 0;
                                             
-                                            logMessage(`Dégâts: ${degats} infligés !`, 'success');
+                                            logMessage(`🎯 Dégâts précis : ${degats} infligés !`, 'success');
                                             updateHP();
-                                            resolve({ success: true, degats, critique: estCritique });
+                                            resolve({ success: true, degats });
                                         });
                                     }, 500);
                                 } else {
@@ -868,12 +908,12 @@ function getSpecialisations() {
                     nom: 'Contre-attaque',
                     icon: '🛡️',
                     type: 'buff',
-                    manaCost: 10,
-                    description: 'Défense +5 + riposte lors de l\'attaque ennemie (Coût: 10 mana)',
+                    // manaCost: 10,
+                    description: 'Défense +6 + riposte automatique (Coût: 10 mana)',
                     effet: (gameState) => {
-                        ajouterBuff('Contre-attaque', 'defense', 5, 1);
+                        ajouterBuff('Contre-attaque', 'defense', 6, 1);
                         gameState.contreAttaque = true;
-                        logMessage('Prêt à contre-attaquer !', 'success');
+                        logMessage('🛡️ Prêt à contre-attaquer !', 'success');
                         return Promise.resolve({ success: true });
                     }
                 },
@@ -882,11 +922,11 @@ function getSpecialisations() {
                     icon: '💪',
                     type: 'buff',
                     manaCost: 15,
-                    description: 'Attaque +5 pour 4 tours + précision (Coût: 15 mana)',
+                    description: 'Attaque +5 + 10% chance de toucher pour 4 tours (Coût: 15 mana)',
                     effet: (gameState) => {
                         ajouterBuff('Renforcement amélioré', 'attaque', 5, 4);
-                        gameState.precision = true;
-                        logMessage('Précision améliorée : +2 aux jets d\'attaque !', 'success');
+                        gameState.precisionBonus = 4; // Compteur de tours
+                        logMessage('💪 Renforcement : +5 attaque et +10% précision pour 4 tours !', 'success');
                         return Promise.resolve({ success: true });
                     }
                 }
@@ -901,19 +941,34 @@ function getSpecialisations() {
 function afficherSelectionSkills() {
     gameState.skillsChoisis = [];
     
-    const classStats = getClassStats(selectedClass);
+    let classStats = getClassStats(selectedClass);
+    
+    // Si le joueur a une spécialisation, utiliser ses skills
+    if (gameState.specialisation) {
+        const specialisations = getSpecialisations();
+        classStats = {
+            ...classStats,
+            skills: specialisations[gameState.specialisation].skills
+        };
+    }
+    
     const actionsContainer = document.getElementById('actions-container');
     
     actionsContainer.innerHTML = `
         <h4 style="text-align: center; margin-bottom: 1rem;">✨ Choisissez 2 actions (${gameState.skillsChoisis.length}/2)</h4>
         <div class="actions-grid" id="skills-grid">
-            ${classStats.skills.map((skill, index) => `
-                <button class="action-btn skill-btn" onclick="choisirSkill(${index})">
-                    <div style="font-size: 2rem; margin-bottom: 0.5rem;">${skill.icon}</div>
-                    <strong>${skill.nom}</strong>
-                    <br>${skill.description}
-                </button>
-            `).join('')}
+            ${classStats.skills.map((skill, index) => {
+                const cost = skill.manaCost ?? 0;
+                const insufficientMana = cost > gameState.pnj.mana;
+                return `
+                    <button class="action-btn skill-btn" onclick="choisirSkill(${index})" ${insufficientMana ? 'style="opacity: 0.5; cursor: not-allowed;"' : ''}>
+                        <div style="font-size: 2rem; margin-bottom: 0.5rem;">${skill.icon}</div>
+                        <strong>${skill.nom}</strong>
+                        ${cost > 0 ? `<div style="color: #3b82f6; font-size: 0.8rem;">Coût: ${cost} mana</div>` : ''}
+                        <br><small>${skill.description}</small>
+                    </button>
+                `;
+            }).join('')}
         </div>
         <div style="text-align: center; margin-top: 1rem;">
             <button id="valider-skills" class="action-btn" style="opacity: 0.5; pointer-events: none;" onclick="validerSkills()">
@@ -926,7 +981,17 @@ function afficherSelectionSkills() {
 // ===== CHOIX D'UNE COMPÉTENCE =====
 
 function choisirSkill(index) {
-    const classStats = getClassStats(selectedClass);
+    let classStats = getClassStats(selectedClass);
+    
+    // Si le joueur a une spécialisation, utiliser ses skills
+    if (gameState.specialisation) {
+        const specialisations = getSpecialisations();
+        classStats = {
+            ...classStats,
+            skills: specialisations[gameState.specialisation].skills
+        };
+    }
+    
     const skillButtons = document.querySelectorAll('.skill-btn');
     const validerBtn = document.getElementById('valider-skills');
     const skill = classStats.skills[index];
@@ -934,9 +999,10 @@ function choisirSkill(index) {
     
     // Si le Mana est insuffisant
     if (cost > gameState.pnj.mana) {
-    logMessage('Mana insuffisante pour cette compétence !', 'warning');
-    return;
+        logMessage('Mana insuffisante pour cette compétence !', 'warning');
+        return;
     }
+    
     // Si le skill est déjà sélectionné, on le désélectionne
     const skillIndex = gameState.skillsChoisis.indexOf(index);
     if (skillIndex !== -1) {
@@ -955,13 +1021,13 @@ function choisirSkill(index) {
     
     // Mise à jour du titre
     const titre = document.querySelector('#actions-container h4');
-    titre.textContent = `✨ Choisissez 2 compétences (${gameState.skillsChoisis.length}/2)`;
+    titre.textContent = `✨ Choisissez 2 actions (${gameState.skillsChoisis.length}/2)`;
     
     // Active le bouton valider si 2 skills sont sélectionnés
     if (gameState.skillsChoisis.length === 2) {
         validerBtn.style.opacity = '1';
         validerBtn.style.pointerEvents = 'auto';
-        logMessage('Compétences sélectionnées ! Cliquez sur "Valider et Attaquer"', 'success');
+        logMessage('Compétences sélectionnées ! Cliquez sur "Valider"', 'success');
     } else {
         validerBtn.style.opacity = '0.5';
         validerBtn.style.pointerEvents = 'none';
@@ -992,7 +1058,7 @@ function ajouterBuff(nom, stat, valeur, duree) {
 }
 
 function appliquerBuffs() {
-    const classStats = getClassStats(selectedClass);
+    // Utilise les stats actuelles du PNJ comme base (qui incluent déjà les bonus de spécialisation)
     
     // Réinitialise les stats aux valeurs de base + portée
     if (gameState.portee === 'longue') {
@@ -1001,12 +1067,13 @@ function appliquerBuffs() {
     } else if (gameState.portee === 'moyenne') {
         gameState.attaqueActuelle = gameState.pnj.attaque;
         gameState.defenseActuelle = gameState.pnj.defense;
-    } else {
+    } else if (gameState.portee === 'courte') {
         gameState.attaqueActuelle = gameState.pnj.attaque + (gameState.pnj.attaque * 0.25);
         gameState.defenseActuelle = gameState.pnj.defense - (gameState.pnj.defense * 0.25);
     }
     
-    gameState.pnj.degats = classStats.stats.degats;
+    // Les dégâts de base sont déjà stockés dans gameState.pnj.degats (incluant la spécialisation)
+    // On n'a pas besoin de les recalculer depuis classStats
     
     // Applique tous les buffs actifs
     gameState.buffsActifs.forEach(buff => {
@@ -1015,7 +1082,8 @@ function appliquerBuffs() {
         } else if (buff.stat === 'defense') {
             gameState.defenseActuelle += buff.valeur;
         } else if (buff.stat === 'degats') {
-            gameState.pnj.degats += buff.valeur;
+            // Note : les dégâts sont déjà dans gameState.pnj.degats
+            // Les buffs s'ajoutent temporairement mais ne modifient pas la base
         }
     });
     
@@ -1028,10 +1096,26 @@ function decrementerBuffs() {
         
         if (buff.duree <= 0) {
             logMessage(`${buff.nom} a expiré`, 'warning');
-            return false; // Supprime le buff
+            return false;
         }
-        return true; // Garde le buff
+        return true;
     });
+    
+    // Décrémente la réduction de dégâts du Paladin
+    if (gameState.reductionDegats && gameState.reductionDegats > 0) {
+        gameState.reductionDegats--;
+        if (gameState.reductionDegats === 0) {
+            logMessage('🛡️ Bouclier divin : Réduction de dégâts terminée', 'warning');
+        }
+    }
+    
+    // Décrémente le bonus de précision du Maître d'armes
+    if (gameState.precisionBonus && gameState.precisionBonus > 0) {
+        gameState.precisionBonus--;
+        if (gameState.precisionBonus === 0) {
+            logMessage('💪 Renforcement : Bonus de précision terminé', 'warning');
+        }
+    }
     
     appliquerBuffs();
 }
@@ -1053,9 +1137,16 @@ async function validerSkills() {
         return;
     }
     
-    const classStats = getClassStats(selectedClass);
-    const buffs = [];
-    const attaques = [];
+    let classStats = getClassStats(selectedClass);
+    
+    // Si le joueur a une spécialisation, utiliser ses skills
+    if (gameState.specialisation) {
+        const specialisations = getSpecialisations();
+        classStats = {
+            ...classStats,
+            skills: specialisations[gameState.specialisation].skills
+        };
+    }
     
     logMessage('\n🌟 Exécution des actions:', 'success');
     
@@ -1067,11 +1158,6 @@ async function validerSkills() {
     for (const index of gameState.skillsChoisis) {
         const skill = classStats.skills[index];
         
-        if (skill.type === 'attaque') {
-            attaques.push(skill);
-        } else {
-            buffs.push(skill);
-        }
         // Consomme la mana
         gameState.pnj.mana -= skill.manaCost ?? 0;
         updateMana();
@@ -1125,16 +1211,53 @@ function tourEnnemi() {
             
             setTimeout(() => {
                 afficherAnimationDe(6, (de6) => {
-                    const degats = gameState.mob.degats + de6;
-                    
-                    logMessage(`Dégâts: ${gameState.mob.degats} + ${de6} = ${degats}`, 'danger');
-                    
-                    gameState.pnj.pv -= degats;
-                    if (gameState.pnj.pv < 0) gameState.pnj.pv = 0;
-                    
-                    logMessage(`Vous perdez ${degats} PV ! (PV restants: ${gameState.pnj.pv})`, 'danger');
-                    updateHP();
-                    
+                let degats = gameState.mob.degats + de6;
+                
+                logMessage(`Dégâts de base: ${gameState.mob.degats} + ${de6} = ${degats}`, 'danger');
+                
+                // Réduction de dégâts du Bouclier divin (Paladin) - AVANT de soustraire les PV
+                if (gameState.reductionDegats && gameState.reductionDegats > 0) {
+                    const degatsOriginaux = degats;
+                    degats = Math.floor(degats * 0.7); // 30% de réduction
+                    logMessage(`🛡️ Bouclier divin : ${degatsOriginaux} → ${degats} dégâts (-30%) !`, 'info');
+                }
+                
+                // Applique les dégâts
+                gameState.pnj.pv -= degats;
+                if (gameState.pnj.pv < 0) gameState.pnj.pv = 0;
+                
+                logMessage(`Vous perdez ${degats} PV ! (PV restants: ${gameState.pnj.pv})`, 'danger');
+                updateHP();
+
+                // Régénération de mana pour Berserker
+                if (gameState.specialisation === 'berserker') {
+                    gameState.pnj.mana = Math.min(gameState.pnj.mana + 3, gameState.pnj.manaMax);
+                    logMessage('⚡ Berserker : +3 mana (coups encaissés)', 'success');
+                    updateMana();
+                }
+                                        
+                    // Contre-attaque du Maître d'armes
+                    if (gameState.contreAttaque) {
+                        gameState.contreAttaque = false;
+                        
+                        setTimeout(() => {
+                            afficherAnimationDe(6, (de6Riposte) => {
+                                logMessage('\n⚔️ CONTRE-ATTAQUE !', 'success');
+                                const riposteDegats = Math.floor(gameState.attaqueActuelle) + de6Riposte;
+                                gameState.mob.pv -= riposteDegats;
+                                if (gameState.mob.pv < 0) gameState.mob.pv = 0;
+                                logMessage(`Riposte : ${riposteDegats} dégâts !`, 'success');
+                                updateHP();
+                                
+                                if (gameState.mob.pv <= 0) {
+                                    logMessage('L\'ennemi est vaincu par la contre-attaque !', 'success');
+                                    setTimeout(() => finDePartie(), 1500);
+                                    return;
+                                }
+                            });
+                        }, 800);
+                    }
+
                     if (gameState.pnj.pv <= 0) {
                         logMessage('Vous êtes mort...', 'danger');
                         setTimeout(() => finDePartie(), 1500);
@@ -1203,6 +1326,11 @@ function finDePartie() {
         logMessage('\n🎉 VICTOIRE ! Vous avez gagné le combat !', 'success');
         
         gameState.niveau++;
+        // Reset Fury du Berserker en fin de combat
+        if (gameState.specialisation === 'berserker') {
+            gameState.furyStacks = 0;
+            logMessage('🔥 Fury réinitialisé', 'info');
+        }
         logMessage(`\n⭐ NIVEAU ${gameState.niveau} !`, 'warning');
         
         // Régénère un peu de mana et PV
