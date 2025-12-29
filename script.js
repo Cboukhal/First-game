@@ -23,6 +23,7 @@ let gameState = {
     portee: null,
     attaqueActuelle: 0,
     defenseActuelle: 0,
+    degatsActuels: 0,
     skillsChoisis: [],
     buffsActifs: []
 };
@@ -174,7 +175,7 @@ function updateStatsDisplay() {
     
     if (statAttaque) statAttaque.textContent = Math.floor(gameState.attaqueActuelle || gameState.pnj.attaque);
     if (statDefense) statDefense.textContent = Math.floor(gameState.defenseActuelle || gameState.pnj.defense);
-    if (statDegats) statDegats.textContent = gameState.pnj.degats;
+    if (statDegats) statDegats.textContent = gameState.degatsActuels || gameState.pnj.degats;
     if (statMagie) statMagie.textContent = gameState.pnj.magie;
 }
 
@@ -271,7 +272,7 @@ function getClassStats(className)
                                     {
                                         afficherAnimationDe(6, (de6) =>
                                         {
-                                            const degats = gameState.pnj.degats + de6 + 5; // Bonus de dégâts
+                                            const degats = gameState.degatsActuels + de6 + 5; // Bonus de dégâts
                                             gameState.mob.pv -= degats;
                                             if (gameState.mob.pv < 0) gameState.mob.pv = 0;
                                             
@@ -401,7 +402,7 @@ function getClassStats(className)
                                     
                                     setTimeout(() => {
                                         afficherAnimationDe(8, (de8) => {
-                                            const degats = gameState.pnj.degats + de8 + 3;
+                                            const degats = gameState.degatsActuels + de8 + 3;
                                             gameState.mob.pv -= degats;
                                             if (gameState.mob.pv < 0) gameState.mob.pv = 0;
                                             
@@ -566,6 +567,7 @@ function genererEnnemi(niveau) {
     
     logMessage(`Un ennemi de niveau ${niveau} apparaît !`, 'danger');
     logMessage(`PV Ennemi: ${gameState.mob.pv}`, 'info');
+    // afficherJetsMob();
     updateHP();
 }
 
@@ -713,7 +715,7 @@ function getSpecialisations() {
                                     
                                     setTimeout(() => {
                                         afficherAnimationDe(8, (de8) => {
-                                            let degats = gameState.pnj.degats + Math.floor(gameState.pnj.magie / 2) + de8;
+                                            let degats = gameState.degatsActuels + Math.floor(gameState.pnj.magie / 2) + de8;
                                             
                                             // Bonus de 50% si l'ennemi est sous 50% PV
                                             if (gameState.mob.pv < gameState.mob.pvMax * 0.5) {
@@ -805,7 +807,7 @@ function getSpecialisations() {
                                     
                                     setTimeout(() => {
                                         afficherAnimationDe(10, (de10) => {
-                                            const degats = Math.floor(gameState.pnj.degats * 1.8) + de10;
+                                            const degats = Math.floor(gameState.degatsActuels * 1.8) + de10;
                                             gameState.mob.pv -= degats;
                                             if (gameState.mob.pv < 0) gameState.mob.pv = 0;
                                             
@@ -1072,8 +1074,8 @@ function appliquerBuffs() {
         gameState.defenseActuelle = gameState.pnj.defense - (gameState.pnj.defense * 0.25);
     }
     
-    // Les dégâts de base sont déjà stockés dans gameState.pnj.degats (incluant la spécialisation)
-    // On n'a pas besoin de les recalculer depuis classStats
+    // Réinitialise les dégâts à la valeur de base
+    gameState.degatsActuels = gameState.pnj.degats;
     
     // Applique tous les buffs actifs
     gameState.buffsActifs.forEach(buff => {
@@ -1082,8 +1084,7 @@ function appliquerBuffs() {
         } else if (buff.stat === 'defense') {
             gameState.defenseActuelle += buff.valeur;
         } else if (buff.stat === 'degats') {
-            // Note : les dégâts sont déjà dans gameState.pnj.degats
-            // Les buffs s'ajoutent temporairement mais ne modifient pas la base
+            gameState.degatsActuels += buff.valeur;
         }
     });
     
@@ -1126,6 +1127,15 @@ function afficherBuffsActifs() {
         gameState.buffsActifs.forEach(buff => {
             logMessage(`  • ${buff.nom} (${buff.duree} tours restants)`, 'info');
         });
+    }
+}
+
+function afficherJetsMob() {
+    if (gameState.mob) {
+        logMessage('\n📊 Statistiques de l\'ennemi:', 'info');
+        logMessage(`  • Attaque: ${gameState.mob.attaque}`, 'info');
+        logMessage(`  • Défense: ${gameState.mob.defense}`, 'info');
+        logMessage(`  • Dégâts: ${gameState.mob.degats}`, 'info');
     }
 }
 
